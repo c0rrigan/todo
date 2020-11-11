@@ -15,22 +15,15 @@
         <h1>TODO List</h1>
     </center>
     <section id="reactRoot" class="container"></section>
+    <section class="legend">
+        <p>Hecho por Sebastian Nava. Nuevas características</p>
+        <ul>
+            <li>Nueva estructura modular ToDo > TaskList > Task</li>
+            <li>Ligeros cambios de diseño</li>
+            <li>Funcionalidad para regresar una tarea finalizada (click al checkbox de una tarea finalizada para regresar a las tareas activas)</li>
+        </ul>
+    </section>
     <style>
-        .animate{
-            animation-duration: 3s;
-            animation-name: fade-out;    
-        }
-        @keyframes fade-out {
-            from {
-                background-color: #495464;
-            }
-            to {
-                background-color: #bbbfca;
-                visibility: hidden;
-            }
-            
-        }
-
         @font-face {
             font-family: 'IBM Plex Mono', monospace;
             src: url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital@0;1&display=swap');
@@ -40,6 +33,11 @@
             font-family: 'IBM Plex Mono', monospace ;
             color: #f4f4f2;
         }
+        .legend{
+            display: block;
+            position: absolute;
+            bottom: 10px;
+        }
         .container{
             display: flex;
             flex-direction: column;
@@ -47,7 +45,6 @@
             margin: 0 22% 0;
             font-variant: normal;
             font-size: 2.5vh;
-            border: 1px solid red;
         }
         .form{
             display: flex;
@@ -66,20 +63,32 @@
             font-size: 1.2em;
             border: 1px solid white;
             border-radius: 8px;
+            
         }
         .check{
             background-color: red;
             border: 1px solid white;
         }
         .task{
-            font-style: italic;
+            box-sizing: border-box;
+            font-weight: bold;
             background-color: #bbbfca;
             /*border: 2px solid white;*/
             border-radius: 10px;
-            padding: 0 1vw;;
+            padding: 1vw 1vw;
             margin: 1vh 0  ;
         }
-
+        .finished{
+            font-style: italic;
+            font-weight: normal;
+            text-decoration: line-through;
+            background-color: #8C8F96;
+        }
+        .delbtn{
+            float: right;
+            border-radius: 8px;
+            border: 2px solid white;
+        }
     </style>
     <script type="text/babel">
         const ToDo = (props) => {
@@ -87,6 +96,8 @@
             const [taskText, setTaskTest] = React.useState("");
             /* Estado para mantener el arreglo de tareas*/
             const [tasks, setTasks] = React.useState([]);
+            /* Estado para mantener el arreglo de tareas finalizadas*/
+            const [finished, setFinished] = React.useState([]);
 
             const updateText = (ev) => {
                 setTaskTest(ev.target.value)
@@ -106,23 +117,49 @@
                 return false;
             };
 
-            const deleteTask = (task) => {
-                let newTasks = tasks.filter(t => t != task)
-                setTasks(newTasks)
+            const moveTask = (task, setIn, arrOut, setOut) => {
+                /* Regresar a las tareas activas */
+                setIn((tasks) => {
+                    let newTasks = [...tasks]
+                    newTasks.push(task)
+                    return newTasks});
+                let newArr = arrOut.filter(ft => ft != task)
+                setOut(newArr)
             }
 
-            const Task = ({ task }) => {
-                const del = () => { 
-                    deleteTask(task) 
-                };
-                return (
-                    <div class="task"><p><input class="check" type="checkbox" onChange={del} />{task}</p></div>
-                )
+            const deleteTask = (task, arr, setFn) => {
+                let newArr = arr.filter(ft => ft != task)
+                setFn(newArr)
             };
 
-            const TaskList = ({ tasks }) => {
+            /* Componente de tarea individual */
+            const Task = ({ task, isFinished }) => {
+                const taskChange = () => {
+                    if(isFinished) 
+                        moveTask(task, setTasks, finished, setFinished)
+                        //undoTask(task)
+                    else  
+                        moveTask(task, setFinished, tasks, setTasks)  
+                        //deleteTask(task)
+                };
+                const del = () => {
+                    if (isFinished) {
+                        deleteTask(task, finished, setFinished)
+                    } else {
+                        deleteTask(task, tasks, setTasks)
+                    }
+                }
+                   return (isFinished ? 
+                        <div class="task finished"><input class="check" type="checkbox" onChange={taskChange} checked />{task}<button class="delbtn" onClick={del}>X</button></div>
+                    :
+                        <div class="task"><input class="check" type="checkbox" onChange={taskChange} />{task}<button class="delbtn" onClick={del}>x</button></div>
+                    )
+            };
+
+            /* Componente de lista de tareas */
+            const TaskList = ({ tasks, fin}) => {
                 return tasks.map((task, index) => {
-                    return <Task key={index} task={task} />
+                    return <Task key={index} task={task} isFinished={fin} />
                 })
             };
 
@@ -132,7 +169,8 @@
                         <input class="text" type="text" value={taskText} onChange={updateText} />
                         <input class="btn" type="submit" value="+" onClick={newTask}/>
                     </form>
-                    <TaskList tasks={tasks} />
+                    <TaskList tasks={tasks} fin={false} />
+                    <TaskList tasks={finished} fin={true} />
                 </React.StrictMode>
             )
         };
